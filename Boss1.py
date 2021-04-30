@@ -12,12 +12,11 @@ class Boss1(pygame.sprite.Sprite):
     def __init__(self, left, right):
         pygame.sprite.Sprite.__init__(self, self.containers)
         self.images = list()
-        #self.images.append(pygame.image.load('../png/boss1.png'))
-        #self.images.append(pygame.image.load('../png/boss_d61.png'))
         boss1_path = os.path.join(os.getcwd(), "png/boss1.png")
         self.images.append(pygame.image.load(boss1_path))
-        boss_d_path = os.path.join(os.getcwd(), "png/boss_d61.png")
-        self.images.append(pygame.image.load(boss_d_path))
+        #boss_d_path = os.path.join(os.getcwd(), "png/boss_d61.png")
+        #self.images.append(pygame.image.load(boss_d_path))
+        self.images.append(pygame.Surface((1,1)))
         self.image = self.images[0]
         self.rect = self.image.get_rect()
         self.x, self.y = (300.0, -50.0)

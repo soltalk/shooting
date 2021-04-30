@@ -13,9 +13,10 @@ class Enemy1(Enemy.Enemy):
         self.id = 1
         self.images = list()
         enemy_path = os.path.join(os.getcwd(),"png/enemy1.png")
-        enemy_d_path = os.path.join(os.getcwd(),"png/enemy_d30.png")
+        #enemy_d_path = os.path.join(os.getcwd(),"png/enemy_d30.png")
         self.images.append(pygame.image.load(enemy_path))
-        self.images.append(pygame.image.load(enemy_d_path))
+        #self.images.append(pygame.image.load(enemy_d_path))
+        self.images.append(pygame.Surface((1,1)))
         self.image = self.images[0]
         self.ene_rad = 15
         self.left = left - self.ene_rad
@@ -33,7 +34,7 @@ class Enemy1(Enemy.Enemy):
         self.angle = -180  #発射角度
         self.angle_rate = 10  #発射角速度変更
         self.eshot = []
-        self.es_num = 100
+        self.es_num = 60
         for _ in range(self.es_num):
             self.eshot.append(es.Eshot(self.eshot_speed, left, right))
 

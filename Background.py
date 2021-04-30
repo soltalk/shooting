@@ -11,8 +11,10 @@ class Background(pygame.sprite.Sprite):
         #self.image = pygame.image.load("../png/bg.png")
         if code == 1:
             bg_path = os.path.join(os.getcwd(),"png/bg.png")
+        elif code == 2:
+            bg_path = os.path.join(os.getcwd(),"png/bg2.png")
         self.image = pygame.image.load(bg_path)
-        if start == 0:
+        if start:
             self.rect = Rect(left, 0, right - left, self.h)
         else:
             self.rect = Rect(left, -self.h, right - left, self.h)

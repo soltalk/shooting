@@ -11,7 +11,10 @@ import os
 import Background as bg
 import Backboard as bb
 import Player
-import Pshot as ps
+import Pshot_normal as psno
+import Pshot_laser as psls
+import Pshot_rapid as psra
+import Pshot_3way as ps3w
 import Item as it
 import Enemy1 as ene1
 import Enemy2 as ene2
@@ -41,22 +44,19 @@ class Control(object):
         self.over_flag = True
         self.boss_flag = False
         self.pose_flag = False
+        self.op_flag = False
         self.stagecode = code
         self.e_num = num
         self.e_kind = kind
 
     def control(self):
-        enemy = []
+        self.enemy = []
         hit_count = 0
         time = 0
         data1_path = os.path.join(os.getcwd(), "data/stage" + str(self.stagecode) + "data.csv")
         with open(data1_path) as f:
             reader = csv.reader(f)
             line = [row for row in reader]
-
-        #start_path = os.path.join(os.getcwd(), "png/start.png")
-        #start = pygame.image.load(start_path)
-        #rect_start = start.get_rect()
 
         exit_path = os.path.join(os.getcwd(), "png/Exit.png")
         self.exit = pygame.image.load(exit_path)
@@ -73,7 +73,10 @@ class Control(object):
         Player.Player.containers = road, last, clear
         bg.Background.containers = road, last, clear
         bb.Backboard.containers = road, last, clear
-        ps.Pshot.containers = road, last, clear
+        psno.Pshot_normal.containers = road, last, clear
+        psls.Pshot_laser.containers = road, last, clear
+        psra.Pshot_rapid.containers = road, last, clear
+        ps3w.Pshot_3way.containers = road, last, clear
         it.Item.containers = road, last, clear
         ene1.Enemy1.containers = road
         ene2.Enemy2.containers = road
@@ -83,17 +86,15 @@ class Control(object):
 
         self.player = Player.Player(self.left, self.right)
         self.p_rad = self.player.p_rad()
-        #self.n_rad = self.player.pn_rad()
-        self.ps_num = self.player.p_pshot_num()
-        #self.life = self.player.p_life()
-        self.bomb_flag = False
+        self.ps_num_a, self.ps_num_b = self.player.p_pshot_num()
+        #self.point_num = 0
 
-        self.makeEnemy(enemy)
+        self.makeEnemy()
 
-        boss = self.makeBoss()
+        self.boss = self.makeBoss()
 
-        back = bg.Background(0, self.stagecode, self.left, self.right)
-        back2 = bg.Background(1, self.stagecode, self.left, self.right)
+        back = bg.Background(False, self.stagecode, self.left, self.right)
+        back2 = bg.Background(True, self.stagecode, self.left, self.right)
         road.move_to_back(back)
         road.move_to_back(back2)
         last.move_to_back(back)
@@ -103,8 +104,6 @@ class Control(object):
 
         self.fream = bb.Backboard()
         self.sound = Sound.Sound()
-
-        #pygame.mixer.music.play(-1)
 
         clock = pygame.time.Clock()
         self.font = pygame.font.SysFont(None, 35)
@@ -119,8 +118,8 @@ class Control(object):
             if time == int(set_data[0]):
                 if set_data[1] == 0:
                     for i in range(self.e_num):
-                        if enemy[i].e_live() == False and enemy[i].e_id() == set_data[2]:
-                            enemy[i].set_data(set_data[3], set_data[4], set_data[5])
+                        if self.enemy[i].e_live() == False and self.enemy[i].e_id() == set_data[2]:
+                            self.enemy[i].set_data(set_data[3], set_data[4], set_data[5])
                             break
                 else:
                     self.boss_flag = True
@@ -129,12 +128,7 @@ class Control(object):
                     next += 1
                     set_data = [int(s) for s in line[next]]
 
-            self.hit(enemy)
-
-            if self.bomb_flag:
-                self.bomb_e_hit(enemy)
-                self.bomb_flag = False
-                self.fream.set_item()
+            self.p_hit()
 
             time += 1
 
@@ -154,22 +148,26 @@ class Control(object):
                     if event.key == pygame.K_F2 or event.key == pygame.K_ESCAPE:
                         screen = pygame.display.set_mode((WIDTH, HEIGHT), 0, 0)
                     if event.key == K_q:
-                        #pygame.mixer.music.stop()
                         self.pause()
+                    if event.key == K_z:
+                        self.player.change_shot()
 
+        #ボス戦のオープニング
         if self.boss_flag:
-            del enemy
-            while(self.boss_flag):
+            del self.enemy
+            self.op_flag = True
+            self.b_rad = self.boss.b_rad()
+            self.b_num = len(self.b_rad)
+            while(self.op_flag):
                 last.draw(self.screen)
                 clear.update()
-                boss.opening()
+                self.boss.opening()
 
                 clock.tick(FPS)
                 pygame.display.update()
 
                 for event in pygame.event.get():
                     if event.type == QUIT:
-                        #pygame.mixer.music.stop()
                         pygame.quit()
                         sys.exit()
 
@@ -180,28 +178,24 @@ class Control(object):
                             screen = pygame.display.set_mode((WIDTH, HEIGHT), 0, 0)
                         # qキーなら終了
                         if event.key == K_q:
-                            #pygame.mixer.music.stop()
                             self.pause()
+                        if event.key == K_z:
+                            self.player.change_shot()
 
+            #ボス戦
             self.game_exit = True
-            boss.set_data()
+            self.boss.set_data()
             while (self.game_exit):
                 last.draw(self.screen)
 
                 last.update()
-                self.boss_hit(boss)
-
-                if self.bomb_flag:
-                    self.bomb_b_hit(boss)
-                    self.bomb_flag = False
-                    self.fream.set_item()
+                self.p_boss_hit()
 
                 clock.tick(FPS)
                 pygame.display.update()
 
                 for event in pygame.event.get():
                     if event.type == QUIT:
-                        #pygame.mixer.music.stop()
                         self.game_end()
                         pygame.quit()
                         sys.exit()
@@ -212,9 +206,11 @@ class Control(object):
                         if event.key == pygame.K_F2 or event.key == pygame.K_ESCAPE:
                             screen = pygame.display.set_mode((WIDTH, HEIGHT), 0, 0)
                         if event.key == K_q:
-                            #pygame.mixer.music.stop()
                             self.pause()
+                        if event.key == K_z:
+                            self.player.change_shot()
 
+        #クリア後
         if self.clear_flag:
             self.score_plus(500 * self.player.p_life())
             clear_txt = self.font.render('CLEAR', True, (255,255,255))
@@ -241,6 +237,8 @@ class Control(object):
                             screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN, 0)
                         if event.key == pygame.K_F2 or event.key == pygame.K_ESCAPE:
                             screen = pygame.display.set_mode((WIDTH, HEIGHT), 0, 0)
+                        if event.key == K_z:
+                            self.player.change_shot()
 
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         if self.rect_exit.collidepoint(event.pos):
@@ -295,7 +293,6 @@ class Control(object):
                     if event.key == pygame.K_F2 or event.key == pygame.K_ESCAPE:
                         screen = pygame.display.set_mode((WIDTH, HEIGHT), 0, 0)
                     if event.key == K_q:
-                        #pygame.mixer.music.stop()
                         self.pose_flag = False
                         self.sound.start()
 
@@ -305,101 +302,90 @@ class Control(object):
                         self.over_flag = False
                         self.pose_flag = False
 
-    def hit(self, enemy):
+    #当たり判定
+    def p_hit(self):
         if self.player.p_health():
             p_p = self.player.p_point()
             for i in range(self.e_num):
-                if enemy[i].e_live():
-                    e_p = enemy[i].e_point()
-                    e_rad = enemy[i].e_rad()
+                if self.enemy[i].e_live():
+                    e_p = self.enemy[i].e_point()
+                    e_rad = self.enemy[i].e_rad()
                     distance = self.get_distance(float(p_p[0]), float(p_p[1]), float(e_p[0]), float(e_p[1]))
                     if self.p_rad + e_rad > distance:
                         self.player.p_damage()
-                        #self.life_txt = self.font.render(str(self.player.p_life()), True, (255,255,255))
                         self.fream.set_hp()
                         break
-                    #if self.n_rad + e_rad > distance:
-                    #    self.near_hit += 1
-                es_num = enemy[i].e_eshot_num()
+                es_num = self.enemy[i].e_eshot_num()
                 for j in range(es_num):
-                    if enemy[i].e_eshot_flag(j):
-                        es_rad,es_p = enemy[i].e_eshot_data(j)
+                    if self.enemy[i].e_eshot_flag(j):
+                        es_rad,es_p = self.enemy[i].e_eshot_data(j)
                         distance = self.get_distance(float(p_p[0]), float(p_p[1]), float(es_p[0]), float(es_p[1]))
                         if self.p_rad + es_rad > distance:
                             self.player.p_damage()
-                            #self.life_txt = self.font.render(str(self.player.p_life()), True, (255,255,255))
                             self.fream.set_hp()
                             break
-                        #if self.n_rad + es_rad > distance:
-                        #    self.near_hit += 1;
                 else:
                     continue
                 break
 
-        for i in range(self.e_num):
-            if enemy[i].e_health():
-                e_p = enemy[i].e_point()
-                e_rad = enemy[i].e_rad()
-                for j in range(self.ps_num):
-                    if self.player.p_pshot_flag(j):
-                        ps_rad,ps_p,ps_pow = self.player.p_pshot_data(j)
-                        distance = self.get_distance(float(ps_p[0]), float(ps_p[1]), float(e_p[0]), float(e_p[1]))
-                        if ps_rad + e_rad > distance:
-                            enemy[i].e_damage(ps_pow)
-                            self.player.kill_shot(j)
-                            break
+    def hit(self, ps_rad,ps_p,ps_pow):
+        (p_x, p_y) = ps_p
+        if self.boss_flag == False:
+            for i in range(self.e_num):
+                if self.enemy[i].e_health():
+                    e_p = self.enemy[i].e_point()
+                    e_rad = self.enemy[i].e_rad()
+                    distance = self.get_distance(float(p_x), float(p_y), float(e_p[0]), float(e_p[1]))
+                    if ps_rad + e_rad > distance:
+                        self.enemy[i].e_damage(ps_pow)
+                        return True
+                        #break
+        else:
+            for i in range(self.b_num):
+                if self.boss.b_health():
+                    b_p = self.boss.b_point()
+                    distance = self.get_distance(float(p_x), float(p_y), float(b_p[i][0]), float(b_p[i][1]))
+                    if ps_rad + self.b_rad[i] > distance:
+                        self.boss.b_damage(ps_pow)
+                        return True
+        return False
 
-    def boss_hit(self, boss):
-        b_p = boss.b_point()
-        b_rad = boss.b_rad()
-        b_num = len(b_rad)
+    def p_boss_hit(self):
+        b_p = self.boss.b_point()
+        #b_rad = self.boss.b_rad()
+        #b_num = len(b_rad)
 
         if self.player.p_health():
             p_p = self.player.p_point()
-            bs_num = boss.b_bshot_num()
+            bs_num = self.boss.b_bshot_num()
             for i in range(bs_num):
-                if boss.b_bshot_flag(i):
-                    bs_rad,bs_p = boss.b_bshot_data(i)
+                if self.boss.b_bshot_flag(i):
+                    bs_rad,bs_p = self.boss.b_bshot_data(i)
                     distance = self.get_distance(float(p_p[0]), float(p_p[1]), float(bs_p[0]), float(bs_p[1]))
                     if self.p_rad + bs_rad > distance:
                         self.player.p_damage()
-                        #self.life_txt = self.font.render(str(self.player.p_life()), True, (255,255,255))
                         self.fream.set_hp()
                         break
-                    #if self.n_rad + bs_rad > distance:
-                    #    self.near_hit += 1;
         if self.player.p_health():
-            for i in range(b_num):
+            for i in range(self.b_num):
                 distance = self.get_distance(float(p_p[0]), float(p_p[1]), float(b_p[i][0]), float(b_p[i][1]))
-                if self.p_rad + b_rad[i] > distance:
+                if self.p_rad + self.b_rad[i] > distance:
                     self.player.p_damage()
-                    #self.life_txt = self.font.render(str(self.player.p_life()), True, (255,255,255))
                     self.fream.set_hp()
                     break
 
-        if boss.b_health():
-            for i in range(b_num):
-                for j in range(self.ps_num):
-                    if self.player.p_pshot_flag(j):
-                        ps_rad,ps_p,ps_pow = self.player.p_pshot_data(j)
-                        distance = self.get_distance(float(ps_p[0]), float(ps_p[1]), float(b_p[i][0]), float(b_p[i][1]))
-                        if ps_rad + b_rad[i] > distance:
-                            boss.b_damage(ps_pow)
-                            self.player.kill_shot(j)
-                            break
-
-    def bomb_e_hit(self, enemy):
+    def bomb_hit(self):
         bomb_pow = self.player.p_bomb_power()
-        for i in range(self.e_num):
-            if enemy[i].e_health():
-                enemy[i].e_damage(bomb_pow)
-            enemy[i].all_kill_shot()
-
-    def bomb_b_hit(self, boss):
-        bomb_pow = self.player.p_bomb_power()
-        if boss.b_health():
-            boss.b_damage(bomb_pow)
-        boss.all_kill_shot()
+        if self.boss_flag == False:
+            for i in range(self.e_num):
+                if self.enemy[i].e_health():
+                    self.enemy[i].e_damage(bomb_pow)
+                self.enemy[i].all_kill_shot()
+        else:
+            if self.boss.b_health():
+                self.boss.b_damage(bomb_pow)
+            self.boss.all_kill_shot()
+        self.fream.use_item()
 
     def get_distance(self, x1, y1, x2, y2):
         d = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
@@ -407,69 +393,31 @@ class Control(object):
 
     def game_end(self):
         self.game_exit = False
+        self.op_flag = False
         self.sound.stop()
 
     def op_end(self):
-        self.boss_flag = False
+        self.op_flag = False
 
     def game_clear(self):
         self.clear_flag = True
         self.game_exit = False
         self.over_flag = False
+        self.sound.stop()
 
     def score_plus(self, s):
-        #self.score += s
-        #self.score_txt = self.font.render(str(self.score), True, (255,255,255))
         self.fream.set_score(s)
 
-    def bomb(self):
-        self.bomb_flag = True
-
-    def makeEnemy(self, enemy):
+    def makeEnemy(self):
         for i in range(self.e_num):
             #enemy.append(ene.Enemy1(e_df.loc[self.e_kind[i]]))
             if self.e_kind[i] == 1:
-                enemy.append(ene1.Enemy1(self.left, self.right))
+                self.enemy.append(ene1.Enemy1(self.left, self.right))
             elif self.e_kind[i] == 2:
-                enemy.append(ene2.Enemy2(self.left, self.right))
+                self.enemy.append(ene2.Enemy2(self.left, self.right))
 
     def makeBoss(self):
         if self.stagecode == 1:
             return bo1.Boss1(self.left, self.right)
-
-'''
-    def rocordAidata(self, check):
-        if check == 1:
-            self.ai_enemy1data.append([self.life - self.player.p_life()])
-            self.ai_enemy1data[len(self.ai_enemy1data)-1].append(self.near_hit)
-            self.life = self.player.p_life()
-        elif check == 2:
-            self.ai_enemy2data.append([self.life - self.player.p_life()])
-            self.ai_enemy2data[len(self.ai_enemy2data)-1].append(self.near_hit)
-            self.life = self.player.p_life()
-        else:
-            self.ai_bossdata.append([self.life - self.player.p_life()])
-            self.ai_bossdata[len(self.ai_bossdata)-1].append(self.near_hit)
-            self.life = self.player.p_life()
-        self.near_hit = 0
-
-    def saveAidata(self):
-        ene1 = []
-        for i in range(len(self.ai_enemy1data)):
-            ene1.append(self.enemy1data + self.ai_enemy1data[i-1] + ['e1'])
-
-        ene2 = []
-        for i in range(len(self.ai_enemy2data)):
-            ene2.append(self.enemy2data + self.ai_enemy2data[i-1] + ['e2'])
-
-        bos = []
-        for i in range(len(self.ai_bossdata)):
-            bos.append(self.bossdata + self.ai_bossdata[i-1] + ['bos'])
-
-        ai_data1_path = os.path.join(os.getcwd(), "data/stage" + str(self.stagecode) + "Aidata.csv")
-        with open(ai_data1_path, 'a', newline='', encoding='utf8') as f:
-            writer = csv.writer(f)
-            writer.writerows(ene1)
-            writer.writerows(ene2)
-            writer.writerows(bos)
-'''
+        elif self.stagecode == 2:
+            return bo1.Boss1(self.left, self.right)

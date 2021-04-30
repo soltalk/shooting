@@ -39,7 +39,7 @@ class Backboard(pygame.sprite.Sprite):
             #self.hp2.move_ip(-self.hp_n2, 0)
             #self.hp2.inflate_ip(self.hp_n2, 0)
 
-    def set_item(self):
+    def use_item(self):
         self.item_n -= 1
         self.item_txt = self.font.render(str(self.item_n), True, (255,255,255))
 

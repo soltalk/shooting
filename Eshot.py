@@ -20,17 +20,18 @@ class Eshot(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.shot_flag = False
         self.angle = 0.0
-        (self.x, self.y)  = (-40.0, -40.0)
-        self.rect.center = (self.x, self.y)
+        (self.x, self.y)  = (0.0, 0.0)
+        self.rect.center = (-40.0, -40.0)
 
     def set_shot(self, point, angle):
         (self.x, self.y) = point
+        self.rect.center = (self.x, self.y)
         self.shot_flag = True
         self.angle = angle
 
     def update(self):
         if self.shot_flag == True:
-            if self.x < self.left or self.y < -self.eshot_rad or self.x > self.right or self.y > self.h:
+            if self.rect.right < self.left or self.rect.bottom < 0 or self.rect.left > self.right or self.rect.top > self.h:
                 self.shot_flag = False
             self.x += round(math.cos(math.radians(self.angle)), 2) * self.eshot_speed
             self.y += round(math.sin(math.radians(self.angle)), 2) * self.eshot_speed
@@ -38,12 +39,14 @@ class Eshot(pygame.sprite.Sprite):
 
     def es_hit(self):
         self.shot_flag = False
-        self.rect.center = (-40, -40)
+        self.rect.center = (-40.0, -40.0)
 
     def es_flag(self):
         return self.shot_flag
 
     def es_point(self):
+        #(x, y) = self.rect.center
+        #return [x, y]
         return [self.x, self.y]
 
     def es_rad(self):
