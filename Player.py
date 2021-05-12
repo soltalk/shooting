@@ -38,8 +38,12 @@ class Player(pygame.sprite.Sprite):
         #ショット関連
         self.shot_pattern = True
         self.reload_timer = 0
-        self.shot_type_a = 3
-        self.shot_type_b = 4
+        shot_path = os.path.join(os.getcwd(),"data/shotfile.txt")
+        f = open(shot_path, 'r')
+        data = f.readlines()
+        self.shot_type_a = int(data[0].rstrip('\n'))
+        self.shot_type_b = int(data[1])
+        f.close()
         self.make_shot(left, right)
         #アイテム関連
         self.item = it.Item()

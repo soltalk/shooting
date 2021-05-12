@@ -16,7 +16,7 @@ class Pshot_3way(pygame.sprite.Sprite):
         self.image = pygame.image.load(pshot_path)
         self.pshot_rad = 5
         self.pshot_speed = 7
-        self.power = 2
+        self.power = 1
         self.left = left
         self.right = right
         self.angle = 0.0
